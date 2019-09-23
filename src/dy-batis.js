@@ -14,12 +14,7 @@ class DyBatis {
     }
 
     setDBConfig(dbConfig = {}) {
-        this.__config = {
-            host: dbConfig.host,
-            user: dbConfig.user,
-            password: dbConfig.password,
-            database: dbConfig.database
-        }
+        this.__config = dbConfig
         this.__pool = mysql.createPool(this.__config)
     }
 

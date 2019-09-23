@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<root>
+    <select id="findUser">
+        select * from user
+        <where>
+            <if test="id!==''">id=${id}</if>
+        </where>
+        order by id
+    </select>
+
+    <insert id="insertUser" precompile="true">
+        insert into user set ?
+    </insert>
+
+    <insert id="insertUserSet">
+        insert into user values (${id}, ${name})
+    </insert>
+</root>

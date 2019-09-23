@@ -1,0 +1,24 @@
+{
+  "name": "dy-batis",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node demo/demo.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RilyZhang/dy-batis.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RilyZhang/dy-batis/issues"
+  },
+  "homepage": "https://github.com/RilyZhang/dy-batis#readme",
+  "dependencies": {
+    "mysql": "^2.17.1",
+    "xml-js": "^1.6.11"
+  }
+}

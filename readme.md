@@ -1,6 +1,6 @@
 ## dy-batis
 
-dy-batis是集成了mybatis数据库驱动的工具。基于xml配置的SQL语句，可以更加灵活的操作数据库，降低开发和维护难度。
+dy-batis是集成了mysql数据库驱动的工具。基于xml配置的SQL语句，可以更加灵活的操作数据库，降低开发和维护难度。
 
 ### 快速开始
 
@@ -127,7 +127,7 @@ args：数组类型，执行语句需要的键值对数组
 
 **transaction()**
 
-该方法用于开启事务，返回一个Promise对象。Promise中resovle的参数时commit函数。在操作执行完成时调用commit函数来提交结果。若处于事务中的查询操作抛出异常，事务中的全部操作将被回滚。
+该方法用于开启事务，返回一个Promise对象。Promise中resovle的参数是commit函数。在操作执行完成时调用commit函数来提交结果。若处于事务中的查询操作抛出异常，事务中的全部操作将被回滚。
 
 注意，开启事务后，如果不调用commit函数，就无法将数据提交到数据库。
 
@@ -165,28 +165,28 @@ id：```类型：string``` 操作的唯一标识。
 
 precompile：```类型：boolean``` 默认false，如果为true，将不会处理语句中的${var}变量。
 
-ref：```类型：string``` 该属性可以将sql标签中的sql片段引入。
+ref：```类型：string``` include标签专属。该属性可以将sql标签中的sql片段引入。
 
-test：该属性值是一个js表达式。
+test：该属性用于做判断条件，值是一个js表达式。
 
 Example：
 
 xml
 ```xml
-<insert id="insertUserSet">
+<insert id="insertUser1">
     insert into user values (${id}, ${name})
 </insert>
 
 <!-- precompile 模式 -->
-<insert id="insertUser" precompile="true">
+<insert id="insertUser2" precompile="true">
     insert into user set ?
 </insert>
 ```
 
 js
 ```ecmascript 6
-db.insertOne('insertUserSet', {id: 1, name: `XiaoMing`})
-db.insertOne('insertUser', {id: 2, name: `XiaoLi`})
+db.insertOne('insertUser1', {id: 1, name: `XiaoMing`})
+db.insertOne('insertUser2', {id: 2, name: `XiaoLi`})
 ```
 
 **where标签**

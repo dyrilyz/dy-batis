@@ -9,8 +9,8 @@ class DyBatis {
         this.__tempConn = null
         this.__pool = null
         this.__allQuery = {}
-        this.setDBConfig(dbConfig)
-        this.readMapper(mapper)
+        (typeof dbConfig === 'object' && !(dbConfig instanceof Array)) && this.setDBConfig(dbConfig)
+        ((mapper instanceof Array) || typeof mapper === 'string') && this.readMapper(mapper)
     }
 
     setDBConfig(dbConfig = {}) {

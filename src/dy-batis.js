@@ -138,7 +138,7 @@ class DyBatis {
             }
         }
         for (const i in result) {
-            if (i > 0) {
+            if (i > 0 && !/^and\s/.test(result[i].text)) {
                 result[i].text = 'and ' + result[i].text
             }
         }

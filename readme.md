@@ -85,6 +85,8 @@ dbConfig：数据库配置项参考[https://www.npmjs.com/package/mysql#pooling-
 
 mapperPath：String | Array，mapper路径
 
+**注：0.1.0版本中，dbConfig的debugger属性为true时会打印每次要执行的sql语句。也可以直接使用mysql库中提供的debug。详情查阅demo中的代码。**
+
 **setDBConfig(dbConfig)**
 
 创建实例时，如果没有传入dbConfig，可以调用该方法传入配置项。

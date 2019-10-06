@@ -20,6 +20,7 @@ class DyBatis {
     setDBConfig(dbConfig = {}) {
         this.__config = dbConfig
         this.__pool = mysql.createPool(this.__config)
+        this.__debugger = dbConfig.debugger
     }
 
     readMapper(mapper) {
@@ -56,14 +57,15 @@ class DyBatis {
         if (!xmlObj) {
             throw Error(`Cannot find this id:${id}`)
         }
-        if (xmlObj.attributes['precompile'] === 'true') {
+        const xmlObjCp = JSON.parse(JSON.stringify(xmlObj))
+        if (xmlObjCp.attributes['precompile'] === 'true') {
             return {
-                precompile: xmlObj.elements[0].text,
-                template: xmlObj.elements[0].text,
+                precompile: xmlObjCp.elements[0].text,
+                template: xmlObjCp.elements[0].text,
                 values: param
             }
         }
-        const __elContent = xmlObj.elements.map(__el => this.__getTextEl(__el, param))
+        const __elContent = xmlObjCp.elements.map(__el => this.__getTextEl(__el, param))
         this.__checkLoop(__elContent)
         for (const __item of __elContent) {
             if (__item) {
@@ -92,6 +94,7 @@ class DyBatis {
             }
         }
         this.__checkLoop(values)
+        !!this.__debugger && console.log({precompile, sql, assert, values})
         return {precompile, sql, assert, values}
     }
 
@@ -138,7 +141,8 @@ class DyBatis {
             }
         }
         for (const i in result) {
-            if (i > 0 && !/^and\s/.test(result[i].text)) {
+            // if (i > 0 && !/^and\s/.test(result[i].text)) {
+            if (i > 0) {
                 result[i].text = 'and ' + result[i].text
             }
         }

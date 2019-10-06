@@ -4,6 +4,7 @@
         select * from user
         <where>
             <if test="id!==''">id=${id}</if>
+            <if test="name!==''">name=${name}</if>
         </where>
         order by id
     </select>

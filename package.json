@@ -1,16 +1,21 @@
 {
   "name": "dy-batis",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "",
   "main": "src/dy-batis.js",
   "scripts": {
-    "test": "node demo/demo.js"
+    "debug": "babel-node --expose_debug_as=v8debug --",
+    "test": "npm run debug demo/demo.js",
+    "build": "babel src -d dist"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/RilyZhang/dy-batis.git"
   },
-  "keywords": [],
+  "keywords": [
+    "my-batis",
+    "orm"
+  ],
   "author": "",
   "license": "ISC",
   "bugs": {
@@ -20,5 +25,14 @@
   "dependencies": {
     "mysql": "^2.17.1",
     "xml-js": "^1.6.11"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.13.10",
+    "@babel/core": "^7.13.10",
+    "@babel/node": "^7.13.10",
+    "@babel/plugin-proposal-class-properties": "^7.13.0",
+    "@babel/plugin-proposal-class-static-block": "^7.13.11",
+    "@babel/plugin-proposal-decorators": "^7.13.5",
+    "@babel/preset-env": "^7.13.10"
   }
 }

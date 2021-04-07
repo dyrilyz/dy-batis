@@ -134,13 +134,15 @@ args：数组类型，执行语句需要的键值对数组
 注意，开启事务后，如果不调用commit函数，就无法将数据提交到数据库。
 
 Example：
+
 ```ecmascript 6
 async function demo () {
-    const db = new DyBatis()
-    const commit = awit db.transaction()
-    await db.insert('insertUser', {id:1,name:'demo'})
-    ...
-    commit()
+  const db = new Index()
+  const commit = awit
+  db.transaction()
+  await db.insert('insertUser', { id: 1, name: 'demo' })
+...
+  commit()
 }
 ```
 

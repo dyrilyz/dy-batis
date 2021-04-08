@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <root>
-  <sql id="test">
+  <sql id="test1">
+    where id = ${id}
+    <include ref="test2"/>
+  </sql>
+
+  <sql id="test2">
     order by id
   </sql>
 
-
-  <select id="findUserTest" precompile="true">
+  <select id="findUserTest">
     select * from user
-    <include ref="test"></include>
+    <include ref="test1"/>
   </select>
 
   <select id="findUser">

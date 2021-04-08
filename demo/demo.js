@@ -12,8 +12,8 @@ async function demo() {
   }, path.resolve(__dirname, './demo.xml'))
 
   // console.log(db)
-  let result = await db.select('findUser', { id: 1, name: '123' })
-  console.log(result)
+  let result = await db.select('findUserTest', { id: 1, name: '123' })
+  // console.log(result)
   // let result = await db.select('findUserTest', [1])
   // console.log(result)
   /*  let result = await db.selectMany('findUser')

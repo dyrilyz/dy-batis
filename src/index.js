@@ -29,14 +29,32 @@ function readMapper(filepath) {
   })
 }
 
-class SQLTemplate {
-  constructor() {
-  }
+function translateXmlJsToSQL(xmlObj, params) {
+  const tags = {}
+  const result = []
+  const elList = xmlObj.elements
+
+  this.tags.forEach(tag => Object.assign(tags, { [tag.name]: tag }))
+
+  elList.forEach(el => {
+    if (el.type === 'element' && tags[el.name]) {
+      const list = tags[el.name].resolveXmlJs(el, params, sqlMapper)
+      list?.forEach(item => result.push(item))
+    } else {
+      result.push(el)
+    }
+  })
+
+  console.log(result.map(item => item.text).join(' '))
 }
 
 export default class DyBatis {
 
-  tags = []
+  tags = [
+    TagINCLUDE.create(),
+    TagWHERE.create(),
+    TagIF.create(),
+  ]
 
   debugger = false
 
@@ -71,7 +89,6 @@ export default class DyBatis {
   __createSQL(id, xmlObj, param) {
     // sql的参数名数组
     let args = ''
-    let fun = ''
     let values = ''
     let precompile = ''
     let assert = ''
@@ -82,6 +99,9 @@ export default class DyBatis {
     }
 
     const xmlObjCp = JSON.parse(JSON.stringify(xmlObj))
+
+    translateXmlJsToSQL.call(this, xmlObjCp)
+
     if (xmlObjCp.attributes['precompile'] === 'true') {
       return {
         precompile: xmlObjCp.elements[0].text,
@@ -119,6 +139,7 @@ export default class DyBatis {
     }
     this.__checkLoop(values)
 
+    console.log({ precompile, sql, assert, values })
     !!this.debugger && console.log({ precompile, sql, assert, values })
 
     return { precompile, sql, assert, values }

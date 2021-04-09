@@ -1,7 +1,8 @@
 import fs from 'fs'
 import convert from 'xml-js'
 import mysql from 'mysql'
-import { TagIF, TagINCLUDE, TagWHERE } from './tags'
+import Tags from './tags'
+
 
 // xml-js 配置
 const xmlJsConf = {
@@ -21,7 +22,7 @@ let databaseConfig = {}
 
 let pool = null
 
-function readMapper(filepath) {
+function readMapper (filepath) {
   const xml = fs.readFileSync(filepath)
   const obj = convert.xml2js(xml, xmlJsConf)
   obj['elements'][0].elements?.map?.(el => {
@@ -29,39 +30,46 @@ function readMapper(filepath) {
   })
 }
 
-function translateXmlJsToSQL(xmlObj, params) {
-  const tags = {}
+function translateXmlJsToSQL (xmlObj, params) {
   const result = []
   const elList = xmlObj.elements
+  const tags = this.tags
 
-  this.tags.forEach(tag => Object.assign(tags, { [tag.name]: tag }))
 
-  elList.forEach(el => {
+  function iteratorCallback (el) {
     if (el.type === 'element' && tags[el.name]) {
       const list = tags[el.name].resolveXmlJs(el, params, sqlMapper)
-      list?.forEach(item => result.push(item))
+      list?.forEach(iteratorCallback)
     } else {
       result.push(el)
     }
-  })
+  }
 
-  console.log(result.map(item => item.text).join(' '))
+  elList.forEach(iteratorCallback)
+
+  const resultEls = result.filter(item => item.type === 'element')
+
+  if (resultEls.length) {
+    throw Error(`${resultEls[0].name}标签未定义`)
+  }
+
+  console.log(params, result/*.map(item => item.text).join(' ')*/)
 }
 
 export default class DyBatis {
 
-  tags = [
-    TagINCLUDE.create(),
-    TagWHERE.create(),
-    TagIF.create(),
-  ]
+  tags = {}
 
   debugger = false
 
   __tempConn = null
 
-  constructor(dbConfig, mapper) {
+  constructor (dbConfig, mapper) {
+
+    this.installTags(Tags)
+
     pool = null
+
     if (typeof dbConfig === 'object' && !(dbConfig instanceof Array)) {
       this.setDBConfig(dbConfig)
     }
@@ -70,13 +78,13 @@ export default class DyBatis {
     }
   }
 
-  setDBConfig(dbConfig = {}) {
+  setDBConfig (dbConfig = {}) {
     databaseConfig = dbConfig
     pool = mysql.createPool(databaseConfig)
     this.debugger = dbConfig.debugger
   }
 
-  readMapper(mapper) {
+  readMapper (mapper) {
     if (mapper) {
       if (typeof mapper === 'string') {
         readMapper(mapper)
@@ -86,7 +94,18 @@ export default class DyBatis {
     }
   }
 
-  __createSQL(id, xmlObj, param) {
+  // 安装标签解析器
+  installTags (tagList) {
+    const tags = {}
+    tagList.forEach(Tag => {
+      const tag = Tag.create()
+      Object.assign(tags, { [tag.name]: tag })
+    })
+
+    Object.assign(this.tags, tags)
+  }
+
+  __createSQL (id, xmlObj, param) {
     // sql的参数名数组
     let args = ''
     let values = ''
@@ -100,9 +119,9 @@ export default class DyBatis {
 
     const xmlObjCp = JSON.parse(JSON.stringify(xmlObj))
 
-    translateXmlJsToSQL.call(this, xmlObjCp)
+    translateXmlJsToSQL.call(this, xmlObjCp, param)
 
-    if (xmlObjCp.attributes['precompile'] === 'true') {
+    /*if (xmlObjCp.attributes['precompile'] === 'true') {
       return {
         precompile: xmlObjCp.elements[0].text,
         template: xmlObjCp.elements[0].text,
@@ -139,13 +158,13 @@ export default class DyBatis {
     }
     this.__checkLoop(values)
 
-    console.log({ precompile, sql, assert, values })
+    // console.log({ precompile, sql, assert, values })
     !!this.debugger && console.log({ precompile, sql, assert, values })
 
-    return { precompile, sql, assert, values }
+    return { precompile, sql, assert, values }*/
   }
 
-  __getTextEl(xmlObj, param) {
+  __getTextEl (xmlObj, param) {
     let sql = []
     switch (xmlObj.type) {
       case 'text':
@@ -163,7 +182,7 @@ export default class DyBatis {
     return sql
   }
 
-  __checkLoop(arr) {
+  __checkLoop (arr) {
     for (const i in arr) {
       if (arr[i] instanceof Array) {
         arr.splice(i, 1, ...arr[i])
@@ -173,11 +192,11 @@ export default class DyBatis {
     }
   }
 
-  __include(xmlObj) {
+  __include (xmlObj) {
     return [...sqlMapper[xmlObj.attributes.ref].elements]
   }
 
-  __where(xmlObj, param) {
+  __where (xmlObj, param) {
     const result = []
     let flag = false
     for (const i in xmlObj.elements) {
@@ -197,7 +216,7 @@ export default class DyBatis {
     return result
   }
 
-  __if(xmlObj, param) {
+  __if (xmlObj, param) {
     let [__keys, __funBody, __fun] = ['', '', '']
     if (param) {
       __keys = Object.keys(param)
@@ -216,7 +235,7 @@ export default class DyBatis {
     }
   }
 
-  async __query(sql, args = []) {
+  async __query (sql, args = []) {
     const _this = this
     return new Promise((resolve, reject) => {
       if (_this.__tempConn) {
@@ -239,8 +258,9 @@ export default class DyBatis {
     })
   }
 
-  async select(id, param) {
+  async select (id, param) {
     const sqlObj = this.__createSQL(id, sqlMapper[id], param)
+    return
     const result = await this.__query(sqlObj.precompile, sqlObj.values)
     if (result) {
       if (result.length === 1) {
@@ -251,7 +271,7 @@ export default class DyBatis {
     }
   }
 
-  async selectOne(id, param) {
+  async selectOne (id, param) {
     const sqlObj = this.__createSQL(id, sqlMapper[id], param)
     const result = await this.__query(sqlObj.precompile, sqlObj.values)
     if (result) {
@@ -259,37 +279,37 @@ export default class DyBatis {
     }
   }
 
-  async selectMany(id, param) {
+  async selectMany (id, param) {
     const sqlObj = this.__createSQL(id, sqlMapper[id], param)
     return await this.__query(sqlObj.precompile, sqlObj.values)
   }
 
-  async insertOne(id, param) {
+  async insertOne (id, param) {
     const sqlObj = this.__createSQL(id, sqlMapper[id], param)
     return await this.__query(sqlObj.precompile, sqlObj.values)
   }
 
-  async insertMany(id, params) {
+  async insertMany (id, params) {
     for (const param of params) {
       const sqlObj = this.__createSQL(id, sqlMapper[id], param)
       await this.__query(sqlObj.precompile, sqlObj.values)
     }
   }
 
-  async update(id, param) {
+  async update (id, param) {
     const sqlObj = this.__createSQL(id, sqlMapper[id], param)
     return await this.__query(sqlObj.precompile, sqlObj.values)
   }
 
-  async delete(id, param) {
+  async delete (id, param) {
     const sqlObj = this.__createSQL(id, sqlMapper[id], param)
     return await this.__query(sqlObj.precompile, sqlObj.values)
   }
 
-  async transaction() {
+  async transaction () {
     const _this = this
 
-    function commit() {
+    function commit () {
       return new Promise((resolve, reject) => {
         _this.__tempConn.commit(err => {
           if (err) {
@@ -316,11 +336,11 @@ export default class DyBatis {
     })
   }
 
-  getPool() {
+  getPool () {
     return Promise.resolve(pool)
   }
 
-  getConn() {
+  getConn () {
     return new Promise((resolve, reject) => {
       pool.getConnection((err, conn) => {
         if (err) {

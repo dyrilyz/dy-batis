@@ -1,17 +1,35 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <root>
   <sql id="test1">
-    where id = ${id}
-    <include ref="test2"/>
+    <if test="id">
+      <where>
+        <item test="id" connector="or">id = ${id}</item>
+
+        <item test="name" connector="or">name = ${name}</item>
+
+      </where>
+      <include ref="test2"/>
+    </if>
   </sql>
 
   <sql id="test2">
     order by id
   </sql>
 
-  <select id="findUserTest">
+  <select id="findUserTest1">
     select * from user
     <include ref="test1"/>
+  </select>
+
+  <select id="findUserTest">
+    update user
+    <set>
+      <item test="id" connector=",">id=${id}</item>
+      <item test="name" connector=",">name=${name}</item>
+    </set>
+    <where>
+      <item test="id" connector="or">id = ${id}</item>
+    </where>
   </select>
 
   <select id="findUser">

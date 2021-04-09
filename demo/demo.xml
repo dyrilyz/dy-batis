@@ -16,21 +16,20 @@
     order by id
   </sql>
 
-  <select id="findUserTest1">
+  <select id="findUserTest">
     select * from user
     <include ref="test1"/>
   </select>
 
-  <select id="findUserTest">
+  <update id="updateUser">
     update user
     <set>
-      <item test="id" connector=",">id=${id}</item>
-      <item test="name" connector=",">name=${name}</item>
+      <item test="name" connector=",">name = ${name}</item>
     </set>
     <where>
-      <item test="id" connector="or">id = ${id}</item>
+      <item test="id">id = ${id}</item>
     </where>
-  </select>
+  </update>
 
   <select id="findUser">
     select * from user
@@ -48,4 +47,5 @@
   <insert id="insertUserSet">
     insert into user values (${id}, ${name})
   </insert>
+
 </root>

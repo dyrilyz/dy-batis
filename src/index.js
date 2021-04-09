@@ -1,74 +1,60 @@
-import fs from 'fs'
-import convert from 'xml-js'
 import mysql from 'mysql'
 import Tags from './tags'
-
-
-// xml-js 配置
-const xmlJsConf = {
-  compact: false,
-  trim: true,
-  instructionHasAttributes: true,
-  alwaysArray: true,
-  ignoreComment: true,
-  ignoreCdata: true,
-  ignoreDoctype: true,
-}
+import { getLog, readMapper } from './utils'
+import CompileSql from './utils/compile-sql'
 
 // 自定义sql对象
 const sqlMapper = {}
 
-let databaseConfig = {}
-
 let pool = null
 
-function readMapper (filepath) {
-  const xml = fs.readFileSync(filepath)
-  const obj = convert.xml2js(xml, xmlJsConf)
-  obj['elements'][0].elements?.map?.(el => {
-    Object.assign(sqlMapper, { [el.attributes.id]: el })
+/**
+ * 提交事物
+ * 调用后提交事物
+ * @returns {Promise}
+ */
+function commit() {
+  return new Promise((resolve, reject) => {
+    this.transactionConn.commit(err => {
+      if (err) {
+        this.transactionConn.rollback(() => {
+          reject(err)
+        })
+      }
+      pool.releaseConnection(this.transactionConn)
+      this.transactionConn = null
+      resolve()
+    })
   })
 }
 
-function translateXmlJsToSQL (xmlObj, params) {
-  const result = []
-  const elList = xmlObj.elements
-  const tags = this.tags
-
-
-  function iteratorCallback (el) {
-    if (el.type === 'element' && tags[el.name]) {
-      const list = tags[el.name].resolveXmlJs(el, params, sqlMapper)
-      list?.forEach(iteratorCallback)
-    } else {
-      result.push(el)
-    }
-  }
-
-  elList.forEach(iteratorCallback)
-
-  const resultEls = result.filter(item => item.type === 'element')
-
-  if (resultEls.length) {
-    throw Error(`${resultEls[0].name}标签未定义`)
-  }
-
-  console.log(params, result/*.map(item => item.text).join(' ')*/)
+async function commonExecute(id, params) {
+  const log = getLog(this.debugger)
+  const sqlObj = new CompileSql(id, sqlMapper[id], params, sqlMapper, this.tags)
+  log(sqlObj)
+  return await this.execute(sqlObj.precompile, sqlObj.values)
 }
 
 export default class DyBatis {
 
+  /**
+   * 标签解析器
+   * @type {{}}
+   */
   tags = {}
 
   debugger = false
 
-  __tempConn = null
+  /**
+   * 事物连接
+   * 开启事物后，会为其赋值，结束事物后会置空
+   * @type {null}
+   */
+  transactionConn = null
 
-  constructor (dbConfig, mapper) {
+  constructor(dbConfig, mapper) {
 
     this.installTags(Tags)
-
-    pool = null
 
     if (typeof dbConfig === 'object' && !(dbConfig instanceof Array)) {
       this.setDBConfig(dbConfig)
@@ -78,16 +64,15 @@ export default class DyBatis {
     }
   }
 
-  setDBConfig (dbConfig = {}) {
-    databaseConfig = dbConfig
-    pool = mysql.createPool(databaseConfig)
+  setDBConfig(dbConfig = {}) {
+    pool = mysql.createPool(dbConfig)
     this.debugger = dbConfig.debugger
   }
 
-  readMapper (mapper) {
+  readMapper(mapper) {
     if (mapper) {
       if (typeof mapper === 'string') {
-        readMapper(mapper)
+        readMapper(mapper, sqlMapper)
       } else if (mapper instanceof Array) {
         mapper.map(item => readMapper(item))
       }
@@ -95,7 +80,7 @@ export default class DyBatis {
   }
 
   // 安装标签解析器
-  installTags (tagList) {
+  installTags(tagList) {
     const tags = {}
     tagList.forEach(Tag => {
       const tag = Tag.create()
@@ -105,163 +90,32 @@ export default class DyBatis {
     Object.assign(this.tags, tags)
   }
 
-  __createSQL (id, xmlObj, param) {
-    // sql的参数名数组
-    let args = ''
-    let values = ''
-    let precompile = ''
-    let assert = ''
-    let sql = ''
-
-    if (!xmlObj) {
-      throw Error(`找不到id:${id}`)
-    }
-
-    const xmlObjCp = JSON.parse(JSON.stringify(xmlObj))
-
-    translateXmlJsToSQL.call(this, xmlObjCp, param)
-
-    /*if (xmlObjCp.attributes['precompile'] === 'true') {
-      return {
-        precompile: xmlObjCp.elements[0].text,
-        template: xmlObjCp.elements[0].text,
-        values: param,
-      }
-    }
-    const __elContent = xmlObjCp.elements.map(__el => this.__getTextEl(__el, param))
-    this.__checkLoop(__elContent)
-    for (const __item of __elContent) {
-      if (__item) {
-        sql += ` ${__item.text.replace(/(\s+)?\n\s+/g, ' ')}`
-      }
-    }
-    sql = sql.trim()
-
-    // 匹配出带$的模板参数
-    const $args = sql.match(/\${(\d|[a-z]|\$|_|\.|\[|]|'|")+}/ig)
-
-    if ($args) {
-      args = $args ? $args.map(__name => __name.replace(/(^\${)|(}$)/g, '')) : []
-      values = args.map(key => param[key])
-    }
-
-    precompile = assert = sql
-
-    for (const i in values) {
-      if (values[i] instanceof Array) {
-        precompile = precompile.replace(`\$\{${args[i]}\}`, values[i].map(v => '?').join(', '))
-        assert = assert.replace(`\$\{${args[i]}\}`, values[i].join(', '))
-      } else {
-        precompile = precompile.replace(`\$\{${args[i]}\}`, '?')
-        assert = assert.replace(`\$\{${args[i]}\}`, values[i])
-      }
-    }
-    this.__checkLoop(values)
-
-    // console.log({ precompile, sql, assert, values })
-    !!this.debugger && console.log({ precompile, sql, assert, values })
-
-    return { precompile, sql, assert, values }*/
-  }
-
-  __getTextEl (xmlObj, param) {
-    let sql = []
-    switch (xmlObj.type) {
-      case 'text':
-        sql.push(xmlObj)
-        break
-      case 'element':
-        sql.push(...this['__' + xmlObj.name](xmlObj, param))
-        break
-    }
-    sql.map((__item, __index) => {
-      if (__item.type === 'element') {
-        sql.splice(__index, 1, [...this.__getTextEl(__item, param)])
-      }
-    })
-    return sql
-  }
-
-  __checkLoop (arr) {
-    for (const i in arr) {
-      if (arr[i] instanceof Array) {
-        arr.splice(i, 1, ...arr[i])
-        this.__checkLoop(arr)
-        break
-      }
-    }
-  }
-
-  __include (xmlObj) {
-    return [...sqlMapper[xmlObj.attributes.ref].elements]
-  }
-
-  __where (xmlObj, param) {
-    const result = []
-    let flag = false
-    for (const i in xmlObj.elements) {
-      const o = this.__if(xmlObj.elements[i], param)
-      if (o) {
-        flag = true
-        result.push(...o)
-      }
-    }
-    for (const i in result) {
-      // if (i > 0 && !/^and\s/.test(result[i].text)) {
-      if (i > 0) {
-        result[i].text = 'and ' + result[i].text
-      }
-    }
-    flag && result.unshift({ type: 'text', text: 'where' })
-    return result
-  }
-
-  __if (xmlObj, param) {
-    let [__keys, __funBody, __fun] = ['', '', '']
-    if (param) {
-      __keys = Object.keys(param)
-      __funBody = `const {${__keys.toString()}} = param;`
-      __fun = `new Function('param', \`${__funBody}return ${xmlObj.attributes.test};\`)(param)`
-    }
-    try {
-      const flag = __fun ? eval(__fun) : false
-      if (flag) {
-        return xmlObj.elements
-      } else {
-        return ''
-      }
-    } catch (e) {
-      return ''
-    }
-  }
-
-  async __query (sql, args = []) {
-    const _this = this
+  async execute(sql, args = []) {
     return new Promise((resolve, reject) => {
-      if (_this.__tempConn) {
-        _this.__tempConn.query(sql, args, (err, result, fields) => {
+      if (this.transactionConn) {
+        this.transactionConn['query'](sql, args, (err, result) => {
           if (err) {
-            _this.__tempConn.rollback(() => {
+            this.transactionConn['rollback'](() => {
               reject(err)
             })
+          } else {
+            resolve(result)
           }
-          resolve(result)
         })
       } else {
-        pool.query(sql, args, (err, result, fields) => {
+        pool.query(sql, args, (err, result) => {
           if (err) {
             reject(err)
+          } else {
+            resolve(result)
           }
-          resolve(result)
         })
       }
     })
   }
 
-  async select (id, param) {
-    const sqlObj = this.__createSQL(id, sqlMapper[id], param)
-    return
-    const result = await this.__query(sqlObj.precompile, sqlObj.values)
+  async select(id, params) {
+    const result = await commonExecute.call(this, id, params)
     if (result) {
       if (result.length === 1) {
         return result[0]
@@ -271,76 +125,55 @@ export default class DyBatis {
     }
   }
 
-  async selectOne (id, param) {
-    const sqlObj = this.__createSQL(id, sqlMapper[id], param)
-    const result = await this.__query(sqlObj.precompile, sqlObj.values)
+  async selectOne(id, params) {
+    const result = await commonExecute.call(this, id, params)
     if (result) {
       return result[0]
     }
   }
 
-  async selectMany (id, param) {
-    const sqlObj = this.__createSQL(id, sqlMapper[id], param)
-    return await this.__query(sqlObj.precompile, sqlObj.values)
+  selectMany(id, params) {
+    return commonExecute.call(this, id, params)
   }
 
-  async insertOne (id, param) {
-    const sqlObj = this.__createSQL(id, sqlMapper[id], param)
-    return await this.__query(sqlObj.precompile, sqlObj.values)
+  insertOne(id, params) {
+    return commonExecute.call(this, id, params)
   }
 
-  async insertMany (id, params) {
+  // todo 需要从sql语句层面优化。或将废弃，提供 for 标签解析器来构建语句
+  async insertMany(id, params) {
     for (const param of params) {
-      const sqlObj = this.__createSQL(id, sqlMapper[id], param)
-      await this.__query(sqlObj.precompile, sqlObj.values)
+      const sqlObj = new CompileSql(id, sqlMapper[id], param, sqlMapper, this.tags)
+      await this.execute(sqlObj.precompile, sqlObj.values)
     }
   }
 
-  async update (id, param) {
-    const sqlObj = this.__createSQL(id, sqlMapper[id], param)
-    return await this.__query(sqlObj.precompile, sqlObj.values)
+  update(id, params) {
+    return commonExecute.call(this, id, params)
   }
 
-  async delete (id, param) {
-    const sqlObj = this.__createSQL(id, sqlMapper[id], param)
-    return await this.__query(sqlObj.precompile, sqlObj.values)
+  delete(id, params) {
+    return commonExecute.call(this, id, params)
   }
 
-  async transaction () {
-    const _this = this
-
-    function commit () {
-      return new Promise((resolve, reject) => {
-        _this.__tempConn.commit(err => {
-          if (err) {
-            _this.__tempConn.rollback(() => {
-              reject(err)
-            })
-          }
-          pool.releaseConnection(_this.__tempConn)
-          _this.__tempConn = null
-          resolve()
-        })
-      })
-    }
-
+  async transaction() {
     return new Promise((resolve, reject) => {
       pool.getConnection((err, conn) => {
         if (err) reject(err)
-        _this.__tempConn = conn
-        _this.__tempConn.beginTransaction(err => {
+        this.transactionConn = conn
+        conn.beginTransaction(err => {
           if (err) reject(err)
-          resolve(commit)
+          resolve(commit.bind(this))
         })
       })
     })
   }
 
-  getPool () {
+  getPool() {
     return Promise.resolve(pool)
   }
 
-  getConn () {
+  getConn() {
     return new Promise((resolve, reject) => {
       pool.getConnection((err, conn) => {
         if (err) {

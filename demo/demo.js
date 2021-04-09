@@ -3,18 +3,18 @@ import path from 'path'
 
 async function demo() {
   const db = new DyBatis({
-    host: '192.168.196.134',
+    host: '192.168.20.129',
     user: 'root',
     password: 'root',
     database: 'demo',
     // debug: true,        // mysql库中提供的调试器
-    // debugger: true,     // dy-batis中提供的调试器
+    debugger: true,     // dy-batis中提供的调试器
   }, path.resolve(__dirname, './demo.xml'))
 
   // console.log(db)
-  let result = await db.select('findUserTest', { id: 1, name: '2' })
-  // let result = await db.select('findUserTest', { id: 1, name: '123' })
-  // console.log(result)
+  // let result = await db.select('findUserTest', { id: 1, name: '2' })
+  let result = await db.update('updateUser', { id: 1, name: '123333' })
+  console.log(result)
   // let result = await db.select('findUserTest', [1])
   // console.log(result)
   /*  let result = await db.selectMany('findUser')

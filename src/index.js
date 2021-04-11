@@ -59,6 +59,7 @@ export default class DyBatis {
     if (typeof dbConfig === 'object' && !(dbConfig instanceof Array)) {
       this.setDBConfig(dbConfig)
     }
+
     if ((mapper instanceof Array) || typeof mapper === 'string') {
       this.readMapper(mapper)
     }
@@ -74,7 +75,7 @@ export default class DyBatis {
       if (typeof mapper === 'string') {
         readMapper(mapper, sqlMapper)
       } else if (mapper instanceof Array) {
-        mapper.map(item => readMapper(item))
+        mapper.map(item => readMapper(item, sqlMapper))
       }
     }
   }

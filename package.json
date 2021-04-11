@@ -1,8 +1,8 @@
 {
   "name": "dy-batis",
-  "version": "0.2.0",
+  "version": "1.0.0-beta",
   "description": "",
-  "main": "src/dy-batis.js",
+  "main": "dist/index.js",
   "scripts": {
     "debug": "babel-node --expose_debug_as=v8debug --",
     "test": "npm run debug demo/demo.js",
@@ -14,7 +14,11 @@
   },
   "keywords": [
     "my-batis",
-    "orm"
+    "orm",
+    "xml",
+    "database",
+    "mysql",
+    "dy-batis"
   ],
   "author": "",
   "license": "ISC",

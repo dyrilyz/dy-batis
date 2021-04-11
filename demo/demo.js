@@ -13,7 +13,7 @@ async function demo() {
 
   // console.log(db)
   // let result = await db.select('findUserTest', { id: 1, name: '2' })
-  let result = await db.update('hello.updateUser', { id: 1, name: '123333' })
+  let result = await db.update('updateUser', { id: 1, name: '123333' })
   console.log(result)
   // let result = await db.select('findUserTest', [1])
   // console.log(result)

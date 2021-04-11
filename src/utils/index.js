@@ -21,7 +21,7 @@ export function readMapper(filepath, sqlMapper) {
   const xml = fs.readFileSync(filepath)
   const obj = convert.xml2js(xml.toString(), xmlJsConf)
   const root = obj['elements'][0]
-  const moduleName = root.attributes.module
+  const moduleName = root?.attributes?.module
   root.elements?.map?.(el => {
     const mapperKey = moduleName ? `${moduleName}.${el.attributes.id}` : el.attributes.id
 

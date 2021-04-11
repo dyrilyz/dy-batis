@@ -45,14 +45,14 @@ var xmlJsConf = {
  */
 
 function readMapper(filepath, sqlMapper) {
-  var _root$elements, _root$elements$map;
+  var _root$attributes, _root$elements, _root$elements$map;
 
   var xml = _fs["default"].readFileSync(filepath);
 
   var obj = _xmlJs["default"].xml2js(xml.toString(), xmlJsConf);
 
   var root = obj['elements'][0];
-  var moduleName = root.attributes.module;
+  var moduleName = root === null || root === void 0 ? void 0 : (_root$attributes = root.attributes) === null || _root$attributes === void 0 ? void 0 : _root$attributes.module;
   (_root$elements = root.elements) === null || _root$elements === void 0 ? void 0 : (_root$elements$map = _root$elements.map) === null || _root$elements$map === void 0 ? void 0 : _root$elements$map.call(_root$elements, function (el) {
     var mapperKey = moduleName ? "".concat(moduleName, ".").concat(el.attributes.id) : el.attributes.id;
     Object.assign(sqlMapper, _defineProperty({}, mapperKey, el));

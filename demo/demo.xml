@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<root>
+<root
+  xmlns="https://rilyzhang.github.io/dy-batis"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="https://rilyzhang.github.io/dy-batis ../schema/dy-batis.xsd"
+>
   <sql id="test1">
     <if test="id">
       <where>

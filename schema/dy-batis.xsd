@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="https://rilyzhang.github.io/dy-batis"
+           xmlns="https://rilyzhang.github.io/dy-batis"
+           elementFormDefault="qualified">
+  <!--https://rilyzhang.github.io/dy-batis/schema/dy-batis.xsd-->
+  <xs:element name="root">
+    <xs:complexType>
+      <xs:choice>
+        <xs:element name="sql" type="element-sql" maxOccurs="unbounded"/>
+        <xs:element name="select" type="element-curd" maxOccurs="unbounded"/>
+        <xs:element name="insert" type="element-curd" maxOccurs="unbounded"/>
+        <xs:element name="update" type="element-curd" maxOccurs="unbounded"/>
+        <xs:element name="delete" type="element-curd" maxOccurs="unbounded"/>
+        <xs:any minOccurs="0"/>
+      </xs:choice>
+    </xs:complexType>
+
+  </xs:element>
+
+
+
+  <xs:complexType name="element-curd" mixed="true">
+    <xs:attribute name="precompile" type="xs:boolean"/>
+  </xs:complexType>
+
+  <xs:complexType name="element-sql" mixed="true">
+    <xs:choice>
+      <xs:element name="if" type="element-if"/>
+      <xs:element name="include" type="element-include"/>
+      <xs:element name="set"/>
+      <xs:element name="where"/>
+    </xs:choice>
+    <xs:attribute name="id" use="required"/>
+  </xs:complexType>
+
+  <!-- IF 标签 -->
+  <xs:complexType name="element-if" mixed="true">
+    <xs:complexContent>
+      <xs:extension base=""
+    </xs:complexContent>
+    <xs:choice>
+      
+    </xs:choice>
+    <xs:attribute name="test" use="required"/>
+  </xs:complexType>
+
+  <!-- IF 标签 -->
+  <xs:complexType name="element-include">
+    <xs:attribute name="ref" use="required"/>
+  </xs:complexType>
+
+  <!-- IF 标签 -->
+  <xs:complexType name="element-set" mixed="true">
+    <xs:attribute name="test" use="required"/>
+  </xs:complexType>
+
+
+</xs:schema>

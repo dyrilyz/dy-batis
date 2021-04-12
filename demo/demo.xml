@@ -2,8 +2,7 @@
 <root
   xmlns="https://rilyzhang.github.io/dy-batis"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="https://rilyzhang.github.io/dy-batis ../schema/dy-batis.xsd"
->
+  xsi:schemaLocation="https://rilyzhang.github.io/dy-batis ../schema/dy-batis.xsd">
   <sql id="test1">
     <if test="id">
       <where>
@@ -25,6 +24,15 @@
     <include ref="test1"/>
   </select>
 
+  <select id="findUser">
+    select * from user
+    <where>
+      <item test="id!==''">id=${id}</item>
+      <item test="name!==''">name=${name}</item>
+    </where>
+    order by id
+  </select>
+
   <update id="updateUser">
     update user
     <set>
@@ -34,15 +42,6 @@
       <item test="id">id = ${id}</item>
     </where>
   </update>
-
-  <select id="findUser">
-    select * from user
-    <where>
-      <if test="id!==''">id=${id}</if>
-      <if test="name!==''">name=${name}</if>
-    </where>
-    order by id
-  </select>
 
   <insert id="insertUser" precompile="true">
     insert into user set ?

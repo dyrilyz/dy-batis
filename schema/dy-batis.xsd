@@ -3,57 +3,82 @@
            targetNamespace="https://rilyzhang.github.io/dy-batis"
            xmlns="https://rilyzhang.github.io/dy-batis"
            elementFormDefault="qualified">
-  <!--https://rilyzhang.github.io/dy-batis/schema/dy-batis.xsd-->
+
   <xs:element name="root">
     <xs:complexType>
-      <xs:choice>
-        <xs:element name="sql" type="element-sql" maxOccurs="unbounded"/>
-        <xs:element name="select" type="element-curd" maxOccurs="unbounded"/>
-        <xs:element name="insert" type="element-curd" maxOccurs="unbounded"/>
-        <xs:element name="update" type="element-curd" maxOccurs="unbounded"/>
-        <xs:element name="delete" type="element-curd" maxOccurs="unbounded"/>
-        <xs:any minOccurs="0"/>
+      <xs:choice maxOccurs="unbounded">
+        <xs:element name="sql" type="element-sql" minOccurs="0"/>
+        <xs:element name="select" type="element-curd" minOccurs="0"/>
+        <xs:element name="insert" type="element-curd" minOccurs="0"/>
+        <xs:element name="update" type="element-curd" minOccurs="0"/>
+        <xs:element name="delete" type="element-curd" minOccurs="0"/>
       </xs:choice>
+      <xs:attribute name="module" type="xs:string"/>
     </xs:complexType>
 
   </xs:element>
 
-
-
-  <xs:complexType name="element-curd" mixed="true">
-    <xs:attribute name="precompile" type="xs:boolean"/>
+  <!-- CURD语句类型 -->
+  <xs:complexType name="element-curd">
+    <xs:annotation>
+      <xs:documentation>SQL语句或片段</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="element-sql">
+        <xs:attribute name="precompile" type="xs:boolean"/>
+      </xs:extension>
+    </xs:complexContent>
   </xs:complexType>
 
-  <xs:complexType name="element-sql" mixed="true">
-    <xs:choice>
-      <xs:element name="if" type="element-if"/>
-      <xs:element name="include" type="element-include"/>
-      <xs:element name="set"/>
-      <xs:element name="where"/>
-    </xs:choice>
-    <xs:attribute name="id" use="required"/>
+  <!-- SQL片段类型 -->
+  <xs:complexType name="element-sql">
+    <xs:complexContent>
+      <xs:extension base="common-sql">
+        <xs:attribute name="id" use="required"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="common-sql" mixed="true">
+    <xs:all>
+      <xs:element minOccurs="0" name="if" type="element-if"/>
+      <xs:element minOccurs="0" name="include" type="element-include"/>
+      <xs:element minOccurs="0" name="where" type="element-where"/>
+      <xs:element minOccurs="0" name="set" type="element-set"/>
+    </xs:all>
   </xs:complexType>
 
   <!-- IF 标签 -->
   <xs:complexType name="element-if" mixed="true">
     <xs:complexContent>
-      <xs:extension base=""
+      <xs:extension base="common-sql">
+        <xs:attribute name="test" use="required"/>
+      </xs:extension>
     </xs:complexContent>
-    <xs:choice>
-      
-    </xs:choice>
-    <xs:attribute name="test" use="required"/>
   </xs:complexType>
 
-  <!-- IF 标签 -->
+  <!-- INCLUDE 标签 -->
   <xs:complexType name="element-include">
     <xs:attribute name="ref" use="required"/>
   </xs:complexType>
 
-  <!-- IF 标签 -->
-  <xs:complexType name="element-set" mixed="true">
-    <xs:attribute name="test" use="required"/>
+  <!-- WHERE 标签 -->
+  <xs:complexType name="element-where" mixed="true">
+    <xs:choice maxOccurs="unbounded">
+      <xs:element name="item" type="element-item" minOccurs="0"/>
+    </xs:choice>
   </xs:complexType>
 
+  <!-- SET 标签 -->
+  <xs:complexType name="element-set">
+    <xs:complexContent>
+      <xs:extension base="element-where"/>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="element-item" mixed="true">
+    <xs:attribute name="test" type="xs:string" use="required"/>
+    <xs:attribute name="connector" type="xs:string"/>
+  </xs:complexType>
 
 </xs:schema>

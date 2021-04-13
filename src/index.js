@@ -13,13 +13,11 @@ let pool = null
  * 调用后提交事物
  * @returns {Promise}
  */
-function commit() {
+function commit () {
   return new Promise((resolve, reject) => {
     this.transactionConn.commit(err => {
       if (err) {
-        this.transactionConn.rollback(() => {
-          reject(err)
-        })
+        this.transactionConn.rollback(() => reject(err))
       }
       pool.releaseConnection(this.transactionConn)
       this.transactionConn = null
@@ -28,7 +26,7 @@ function commit() {
   })
 }
 
-async function commonExecute(id, params) {
+async function commonExecute (id, params) {
   const log = getLog(this.debugger)
   const sqlObj = new CompileSql(id, sqlMapper[id], params, sqlMapper, this.tags)
   log(sqlObj)
@@ -52,7 +50,7 @@ export default class DyBatis {
    */
   transactionConn = null
 
-  constructor(dbConfig, mapper) {
+  constructor (dbConfig, mapper) {
 
     this.installTags(Tags)
 
@@ -65,12 +63,12 @@ export default class DyBatis {
     }
   }
 
-  setDBConfig(dbConfig = {}) {
+  setDBConfig (dbConfig = {}) {
     pool = mysql.createPool(dbConfig)
     this.debugger = dbConfig.debugger
   }
 
-  readMapper(mapper) {
+  readMapper (mapper) {
     if (mapper) {
       if (typeof mapper === 'string') {
         readMapper(mapper, sqlMapper)
@@ -81,7 +79,7 @@ export default class DyBatis {
   }
 
   // 安装标签解析器
-  installTags(tagList) {
+  installTags (tagList) {
     const tags = {}
     tagList.forEach(Tag => {
       const tag = Tag.create()
@@ -91,7 +89,7 @@ export default class DyBatis {
     Object.assign(this.tags, tags)
   }
 
-  async execute(sql, args = []) {
+  async execute (sql, args = []) {
     return new Promise((resolve, reject) => {
       if (this.transactionConn) {
         this.transactionConn['query'](sql, args, (err, result) => {
@@ -115,7 +113,7 @@ export default class DyBatis {
     })
   }
 
-  async select(id, params) {
+  async select (id, params) {
     const result = await commonExecute.call(this, id, params)
     if (result) {
       if (result.length === 1) {
@@ -126,38 +124,38 @@ export default class DyBatis {
     }
   }
 
-  async selectOne(id, params) {
+  async selectOne (id, params) {
     const result = await commonExecute.call(this, id, params)
     if (result) {
       return result[0]
     }
   }
 
-  selectMany(id, params) {
+  selectMany (id, params) {
     return commonExecute.call(this, id, params)
   }
 
-  insertOne(id, params) {
+  insertOne (id, params) {
     return commonExecute.call(this, id, params)
   }
 
   // todo 需要从sql语句层面优化。或将废弃，提供 for 标签解析器来构建语句
-  async insertMany(id, params) {
+  async insertMany (id, params) {
     for (const param of params) {
       const sqlObj = new CompileSql(id, sqlMapper[id], param, sqlMapper, this.tags)
       await this.execute(sqlObj.precompile, sqlObj.values)
     }
   }
 
-  update(id, params) {
+  update (id, params) {
     return commonExecute.call(this, id, params)
   }
 
-  delete(id, params) {
+  delete (id, params) {
     return commonExecute.call(this, id, params)
   }
 
-  async transaction() {
+  async transaction () {
     return new Promise((resolve, reject) => {
       pool.getConnection((err, conn) => {
         if (err) reject(err)
@@ -170,11 +168,11 @@ export default class DyBatis {
     })
   }
 
-  getPool() {
+  getPool () {
     return Promise.resolve(pool)
   }
 
-  getConn() {
+  getConn () {
     return new Promise((resolve, reject) => {
       pool.getConnection((err, conn) => {
         if (err) {

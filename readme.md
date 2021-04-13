@@ -2,68 +2,174 @@
 
 dy-batis是集成了mysql数据库驱动的工具。基于xml配置的SQL语句，可以更加灵活的操作数据库，降低开发和维护难度。
 
-### 快速开始
+### 指南
 
 安装：
+
 ```
 npm i -S dy-batis
 ```
 
 xml配置：
+
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
-<root>
-    <select id="findUser">
-        select * from user
-        <where>
-            <if test="id!==''">id=${id}</if>
-        </where>
-        order by id
-    </select>
+<root xmlns="https://rilyzhang.github.io/dy-batis"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="https://rilyzhang.github.io/dy-batis
+   node_modules/dy-batis/schema/dy-batis.xsd">
+  <select id="findUser">
+    select * from user
+    <where>
+      <item test="id!==''">id=${id}</item>
+      <item test="!!name" connector="and">name=${name}</item>
+    </where>
+    order by id
+  </select>
 
-    <insert id="insertUser" precompile="true">
-        insert into user set ?
-    </insert>
+  <insert id="insertUser" precompile="true">
+    insert into user set ?
+  </insert>
 
-    <insert id="insertUserSet">
-        insert into user values (${id}, ${name})
-    </insert>
+  <insert id="insertUserSet">
+    insert into user values (${id}, ${name})
+  </insert>
 </root>
 ```
 
 js代码：
-```ecmascript 6
-const DyBatis = require('dy-batis')
-const path = require('path')
 
+```javascript
+import DyBatis from 'dy-batis'
+import path from 'path'
 
-async function demo() {
-    const db = new DyBatis({
-        host: '192.168.8.111',
-        user: 'root',
-        password: 'root',
-        database: 'my',
-    }, path.resolve(__dirname, './demo.xml'))
+async function demo () {
+  const dbConfig = {
+    host: 'localhost',
+    user: 'root',
+    password: 'root',
+    database: 'demo',
+  }
+  const mappers = [
+    path.resolve(__dirname, './demo.xml'),
+  ]
+  const db = new DyBatis(dbConfig, mappers)
 
-    let result = await db.select('findUser')
-    let index = result[result.length - 1].id
-    console.log(result)
+  let result = await db.select('findUser')
+  let index = result[result.length - 1].id
+  console.log(result)
 
-    result = await db.select('findUser', {id: '5'})
-    console.log(result)
+  result = await db.select('findUser', { id: '5' })
+  console.log(result)
 
-    db.insertOne('insertUser', {id: ++index, name: `${index}-name`})
-    db.insertOne('insertUserSet', {id: ++index, name: `${index}-name`})
+  db.insertOne('insertUser', { id: ++index, name: `${index}-name` })
+  db.insertOne('insertUserSet', { id: ++index, name: `${index}-name` })
 }
 
 demo()
+```
+
+### 1.0版本更新
+
+1.0主要更新内容为：
+
+- 项目结构
+- 元素解析
+- Schema
+
+#### 项目结构
+
+此项目最初是单文件项目，代码略微混乱，不易扩展。此次更新，将实例上的部分方法抽离为私有方法，使项目和代码结构更清晰。
+
+#### 元素解析
+
+之前绑定在实例上的元素解析方法，现在使用面向对象的思路重构，并抽象出element接口，方便用户自行扩展。
+
+
+扩展代码：
+
+```javascript
+// MyIf.js
+import Element from 'dy-batis/tags/element'
+
+export default class MyIf extends Element {
+
+  // 元素名
+  name = 'if'
+
+  constructor (props) {
+    super(props)
+  }
+
+  /** 
+  * 重写Element中resolveXmlJs方法
+  * @param xmlObj: 当前需要解析的元素对象
+  * @param params: sql 预编译参数
+  * @param sqlMapper:  sql集合,包含所有的未解析的sql xml对象
+  */
+  resolveXmlJs (xmlObj, params, sqlMapper) {
+
+    if (typeof xmlObj.attributes.test === 'undefined') {
+      throw Error('if 标签 test 属性没有定义！')
+    }
+
+    const flag = this.executeTest(xmlObj.attributes.test, params)
+
+    return flag ? xmlObj.elements : []
+  }
+
+  executeTest (test, params) {
+
+    const keys = Object.keys(params)
+
+    let expression = keys.map(key => `const ${key}=params['${key}'];`).join('')
+
+    expression += `return !!${test}`
+
+    const func = new Function('params', expression)
+
+    return func(params)
+  }
+
+}
+```
+
+```javascript
+// main.js
+import MyIf from './MyIf'
+import DyBatis from 'dy-batis'
+
+const db = new DyBatis()
+
+db.installTags([
+    MyIf,
+])
 
 ```
 
+#### Schema
+
+从1.0开始，提供了XML Schema，用于规范XML标签和属性。通过引入Schema，一些常用的IDE还会自动验证XML，并给出标签提示。（例如 WebStorm 等。）
+
+schema文件存放在此库的```schema/```路径下，名为```dy-batis.xsd```。
+
+引入方式：
+
+```xml
+<!-- mapper.xml -->
+<root xmlns="https://rilyzhang.github.io/dy-batis"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="https://rilyzhang.github.io/dy-batis
+   node_modules/dy-batis/schema/dy-batis.xsd">
+</root>
+```
+
 ### API
+
 - constructor
 - setDBConfig
 - readMapper
+- installTags```1.0 新增```
 - select
 - selectOne
 - selectMany
@@ -94,6 +200,10 @@ mapperPath：String | Array，mapper路径
 **readMapper(mapperPath)**
 
 创建实例时，如果没有传入mapperPath，可以调用该方法传入配置项。
+
+**installTags(tags)**
+
+tags为数组，为实例扩展元素解析，具体用法参考上面的例子。
 
 **select(id, args)**
 
@@ -135,13 +245,13 @@ args：数组类型，执行语句需要的键值对数组
 
 Example：
 
-```ecmascript 6
+```javascript
 async function demo () {
   const db = new Index()
   const commit = awit
   db.transaction()
   await db.insert('insertUser', { id: 1, name: 'demo' })
-...
+  // ...
   commit()
 }
 ```
@@ -162,7 +272,10 @@ async function demo () {
 - sql ```属性：id ``` SQL片段
 - include ```属性：ref```
 - if ```属性：test```
-   
+- where where子句
+- set set子句
+- item ```1.0 新增，属性：test | connector``` 可以用于 set 字句或 where 子句中
+
 属性：
 
 id：```类型：string``` 操作的唯一标识。
@@ -173,33 +286,37 @@ ref：```类型：string``` include标签专属。该属性可以将sql标签中
 
 test：该属性用于做判断条件，值是一个js表达式。
 
+connector：定义连接符号，多个item连接时，告诉解析器使用什么符号链接，值为 ```,|and|or```。
+
 Example：
 
 xml
-```xml
-<insert id="insertUser1">
-    insert into user values (${id}, ${name})
-</insert>
 
-<!-- precompile 模式 -->
-<insert id="insertUser2" precompile="true">
+```xml
+<root>
+  <insert id="insertUser1">
+    insert into user values (${id}, ${name})
+  </insert>
+
+  <!-- precompile 模式 -->
+  <insert id="insertUser2" precompile="true">
     insert into user set ?
-</insert>
+  </insert>
+</root>
 ```
 
 js
-```ecmascript 6
-db.insertOne('insertUser1', {id: 1, name: `XiaoMing`})
-db.insertOne('insertUser2', {id: 2, name: `XiaoLi`})
+
+```javascript
+db.insertOne('insertUser1', { id: 1, name: `XiaoMing` })
+db.insertOne('insertUser2', { id: 2, name: `XiaoLi` })
 ```
 
 **where标签**
 
 ```xml
 <where>
-    <if test="title">b.title like concat('%',${title},'%')</if>
-    <if test="len">a.t_id in (${tag})</if>
+  <item test="title">b.title like concat('%',${title},'%')</item>
+  <item test="len" connector="and">a.t_id in (${tag})</item>
 </where>
 ```
-
-where 标签中包含一个或多个if标签，使用where标签可以省略 ```where``` 条件中的 ```and``` 关键字。

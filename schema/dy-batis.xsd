@@ -6,12 +6,12 @@
 
   <xs:element name="root">
     <xs:complexType>
-      <xs:choice maxOccurs="unbounded">
-        <xs:element name="sql" type="element-sql" minOccurs="0"/>
-        <xs:element name="select" type="element-curd" minOccurs="0"/>
-        <xs:element name="insert" type="element-curd" minOccurs="0"/>
-        <xs:element name="update" type="element-curd" minOccurs="0"/>
-        <xs:element name="delete" type="element-curd" minOccurs="0"/>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="sql" type="element-sql"/>
+        <xs:element name="select" type="element-curd"/>
+        <xs:element name="insert" type="element-curd"/>
+        <xs:element name="update" type="element-curd"/>
+        <xs:element name="delete" type="element-curd"/>
       </xs:choice>
       <xs:attribute name="module" type="xs:string"/>
     </xs:complexType>
@@ -21,7 +21,7 @@
   <!-- CURD语句类型 -->
   <xs:complexType name="element-curd">
     <xs:annotation>
-      <xs:documentation>SQL语句或片段</xs:documentation>
+      <xs:documentation>SQL语句</xs:documentation>
     </xs:annotation>
     <xs:complexContent>
       <xs:extension base="element-sql">
@@ -32,6 +32,9 @@
 
   <!-- SQL片段类型 -->
   <xs:complexType name="element-sql">
+    <xs:annotation>
+      <xs:documentation>SQL片段</xs:documentation>
+    </xs:annotation>
     <xs:complexContent>
       <xs:extension base="common-sql">
         <xs:attribute name="id" use="required"/>
@@ -40,16 +43,23 @@
   </xs:complexType>
 
   <xs:complexType name="common-sql" mixed="true">
-    <xs:all>
-      <xs:element minOccurs="0" name="if" type="element-if"/>
-      <xs:element minOccurs="0" name="include" type="element-include"/>
-      <xs:element minOccurs="0" name="where" type="element-where"/>
-      <xs:element minOccurs="0" name="set" type="element-set"/>
-    </xs:all>
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="if" type="element-if"/>
+      <xs:element name="include" type="element-include"/>
+      <xs:element name="where" type="element-where"/>
+      <xs:element name="set" type="element-set"/>
+    </xs:choice>
   </xs:complexType>
 
-  <!-- IF 标签 -->
+  <!-- IF 元素 -->
   <xs:complexType name="element-if" mixed="true">
+    <xs:annotation>
+      <xs:documentation>
+        &lt;if&gt;元素：
+        <hr/>
+        test属性：js表达式，返回boolean
+      </xs:documentation>
+    </xs:annotation>
     <xs:complexContent>
       <xs:extension base="common-sql">
         <xs:attribute name="test" use="required"/>
@@ -57,28 +67,61 @@
     </xs:complexContent>
   </xs:complexType>
 
-  <!-- INCLUDE 标签 -->
+  <!-- INCLUDE 元素 -->
   <xs:complexType name="element-include">
+    <xs:annotation>
+      <xs:documentation>
+        &lt;include&gt;元素：
+        <hr/>
+        ref属性：sql元素id属性值
+      </xs:documentation>
+    </xs:annotation>
     <xs:attribute name="ref" use="required"/>
   </xs:complexType>
 
-  <!-- WHERE 标签 -->
+  <!-- WHERE 元素 -->
   <xs:complexType name="element-where" mixed="true">
-    <xs:choice maxOccurs="unbounded">
-      <xs:element name="item" type="element-item" minOccurs="0"/>
+    <xs:annotation>
+      <xs:documentation>
+        &lt;where&gt;元素：内容为string类型或item元素
+      </xs:documentation>
+    </xs:annotation>
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="item" type="element-item"/>
     </xs:choice>
   </xs:complexType>
 
-  <!-- SET 标签 -->
+  <!-- SET 元素 -->
   <xs:complexType name="element-set">
+    <xs:annotation>
+      <xs:documentation>
+        &lt;set&gt;元素：内容为string类型或item元素
+      </xs:documentation>
+    </xs:annotation>
     <xs:complexContent>
       <xs:extension base="element-where"/>
     </xs:complexContent>
   </xs:complexType>
 
   <xs:complexType name="element-item" mixed="true">
+    <xs:annotation>
+      <xs:documentation>
+        &lt;item&gt;元素：
+        <hr/>
+        test属性：js表达式，返回boolean<br/>
+        connector属性：连接符
+      </xs:documentation>
+    </xs:annotation>
     <xs:attribute name="test" type="xs:string" use="required"/>
-    <xs:attribute name="connector" type="xs:string"/>
+    <xs:attribute name="connector">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value=","/>
+          <xs:enumeration value="and"/>
+          <xs:enumeration value="or"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
   </xs:complexType>
 
 </xs:schema>

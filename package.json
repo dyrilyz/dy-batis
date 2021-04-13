@@ -1,6 +1,6 @@
 {
   "name": "dy-batis",
-  "version": "1.0.0-rc",
+  "version": "1.0.1-rc",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
@@ -22,7 +22,7 @@
     "dy-batis"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/RilyZhang/dy-batis/issues"
   },
